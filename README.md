@@ -1,47 +1,57 @@
-# PrismSSL Toolbox UI
+# PrismSSL UI
 
-A standalone HTML/CSS/JS dashboard for orchestrating PrismSSL-style training
-runs without any backend services. The interface ships as a single-page
-application, renders a toolbox-style control panel, and executes Python payloads
-inside a Web Worker powered by Pyodide.
+A standalone HTML/CSS/JS dashboard for orchestrating PrismSSL self-supervised training
+runs.  The interface mirrors the original Streamlit experience with sidebar
+configuration panels, Ace-powered editors for datasets/backbones, live log
+streaming, and theme toggling.
 
-## Getting started
+## Frontend usage
 
-1. Serve the `public/` directory with any static file server or open
-   `public/index.html` directly in a browser.
-2. Wait for the **Python runtime ready** badge in the header. The first load can
-   take a few seconds while Pyodide downloads.
-3. Configure the run metadata, dataset/backbone snippets, and hyperparameters
-   from the toolbox column.
-4. Press **Launch training** to send the configuration into the worker.
-   Training progress, synthetic metrics, and activity logs appear in the
-   workspace panels.
-5. Use the **Run Python check** action to execute an ad-hoc diagnostic snippet
-   and verify the embedded Python interpreter is responsive.
+1. Open `public/index.html` in a browser or serve the `public/` directory with
+   your static file server of choice.
+2. Configure the run, dataset/backbone code snippets, and hyperparameters from
+   the sidebar panels.
+3. Toggle **Use Mock Backend** to try the UI without a running service.  Disable
+   it to forward requests to the real API endpoints.
 
-The dashboard persists all form fields and editor content in `localStorage`,
-allowing you to refresh the page without losing your blueprint.
+## Backend service
 
-## Architecture
+A FastAPI server that wraps the official `PrismSSL.<modality>.Trainer` classes is
+provided in `backend/server.py`.  It accepts the exact payload emitted by the
+frontend and performs the following steps:
 
-- **No backend dependencies** — a `python-worker.js` module hosts Pyodide and
-  simulates the PrismSSL trainer loop entirely in the browser. The worker
-  consumes the complete payload assembled from the UI and streams progress
-  events back to the main thread.
-- **Ace-powered editors** for train/validation datasets and backbone code.
-  Snippets are executed inside the worker to validate that Python is running.
-- **Theme-aware design** following the AI-inspired dark/light palettes described
-  in the original brief.
+- Executes uploaded dataset/backbone source snippets and instantiates them.
+- Creates the appropriate PrismSSL `Trainer` implementation for the selected
+  modality/method.
+- Launches training in a background thread, capturing stdout/stderr into the log
+  buffer exposed to the UI.
 
-## Development tips
+### Install dependencies
 
-- Customise the diagnostic snippet in the workspace to quickly test new Python
-  logic. The console output and exceptions are surfaced inline.
-- The worker currently emits synthetic metrics; integrate real PrismSSL logic by
-  expanding `public/python-worker.js` with the appropriate package imports once
-  the libraries are available in Pyodide.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+```
 
-## Testing
+> **Note:** PrismSSL pulls in PyTorch; ensure you select the appropriate wheel
+> for your environment if GPU acceleration is required.
 
-No automated tests are bundled. Open the page in a modern browser (Chromium,
-Firefox, or Safari) to validate behaviour manually.
+### Run the API
+
+```bash
+uvicorn backend.server:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The service implements the contract expected by the UI:
+
+- `POST /api/trainer/init`
+- `POST /api/trainer/build_backbone`
+- `POST /api/train/start`
+- `POST /api/train/stop`
+- `GET /api/status`
+- `GET /api/logs`
+- `POST /api/logs/clear`
+
+Keep the backend running while interacting with the frontend (with the mock
+backend toggle disabled) to route requests into real PrismSSL training jobs.

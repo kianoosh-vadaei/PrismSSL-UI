@@ -1,20 +1,29 @@
-# Python worker runtime
+# Mock Backend
 
-The dashboard no longer depends on a standalone API. Instead, a Web Worker
-(`python-worker.js`) loads Pyodide and executes the assembled configuration
-payload entirely inside the browser.
+The frontend ships with an Optuna-ready mock backend so the UI can run without any services.
 
-## Event flow
+## Available Endpoints
 
-1. The UI collects all run metadata, dataset/backbone snippets, and
-   hyperparameters.
-2. Pressing **Launch training** sends the payload to the worker via `postMessage`.
-3. The worker executes the snippets, simulates a PrismSSL-style training loop,
-   and emits progress events (`status`, `metrics`, `log`).
-4. Activity logs, metric summaries, and progress bars update live in the
-   workspace.
-5. The **Run Python check** action uses the same worker to execute ad-hoc Python
-   snippets and displays stdout/stderr inline.
+The `ApiClient` exposes the same contract expected from the production trainer service:
 
-Use this file as a reference if you plan to replace the synthetic loop with
-real PrismSSL logic.
+| Method | Endpoint                     | Description                                      |
+| ------ | ---------------------------- | ------------------------------------------------ |
+| POST   | `/api/trainer/init`          | Initializes a trainer session.                   |
+| POST   | `/api/trainer/build_backbone`| Validates uploaded backbone code.                |
+| POST   | `/api/train/start`           | Starts a mock training loop.                     |
+| POST   | `/api/train/stop`            | Stops the mock training loop.                    |
+| GET    | `/api/status`                | Returns `{is_running, current_epoch, ...}`.      |
+| GET    | `/api/logs`                  | Returns aggregated logs.                         |
+| POST   | `/api/logs/clear`            | Clears the log buffer.                           |
+
+## How It Works
+
+When the “Use Mock Backend” toggle is enabled, the `ApiClient` bypasses `fetch` calls and
+routes requests to an in-memory simulator:
+
+- Generates synthetic loss curves and epoch counters.
+- Emits timestamped log lines.
+- Mimics trainer initialization and backbone validation responses.
+- Enforces the same payload shape used by the real trainer service.
+
+Disable the toggle to forward requests to your own backend implementation.

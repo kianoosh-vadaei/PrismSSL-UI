@@ -1,337 +1,269 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PrismSSL Toolbox Dashboard</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MK-SSL • Research Toolbox</title>
     <link rel="icon" type="image/svg+xml" href="./assets/logo.svg" />
     <link rel="stylesheet" href="./styles.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.js" integrity="sha512-Z3w3d0ZH0qpTP0TO+GfY7Zb5gENNU3qsqNLz7iTX+YhoCk9tFaLbiYXRJu5X6m3gd3zWux0I5Xa86nKNUkQHOA==" crossorigin="anonymous"></script>
-    <script type="module" src="./app.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js" integrity="sha512-v7HnyN7VpQJxSXBhbL+Gr1RglN4WH5vfco5nWySmIeG/1hFupmrc7l1JR10ZTDwDDgZLF+oIeDutEecLIyrFIA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   </head>
   <body>
     <div class="app-shell">
-      <header class="app-header">
-        <div class="brand">
-          <img src="./assets/logo.svg" alt="PrismSSL logo" class="brand-logo" />
-          <div>
-            <p class="brand-eyebrow">PrismSSL Toolbox</p>
-            <h1 class="brand-title">Self-Supervised Training Command Center</h1>
+      <aside class="sidebar" aria-label="Configuration sidebar">
+        <header class="sidebar__header">
+          <img src="./assets/logo.svg" alt="MK-SSL" class="sidebar__logo" />
+          <div class="sidebar__title-group">
+            <h1 class="sidebar__title">MK-SSL Research Toolbox</h1>
+            <p class="sidebar__subtitle">Configure training runs and launch experiments.</p>
           </div>
+        </header>
+        <div class="sidebar__scroll">
+          <section class="panel" aria-labelledby="global-setup-title">
+            <h2 id="global-setup-title">⚙️ Global Setup</h2>
+            <label class="field">
+              <span class="field__label">🏷️ Run Name</span>
+              <input type="text" id="run-name" name="run-name" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span class="field__label">📁 Save Directory</span>
+              <input type="text" id="save-dir" name="save-dir" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span class="field__label">🧷 Checkpoint Interval</span>
+              <input type="number" id="checkpoint-interval" name="checkpoint-interval" min="1" max="100000" step="1" />
+            </label>
+            <div class="field field--toggle">
+              <label for="reload-ckpt">🔁 Reload Checkpoint</label>
+              <input type="checkbox" id="reload-ckpt" />
+            </div>
+            <div class="field field--toggle">
+              <label for="mixed-precision">⚡ Mixed Precision</label>
+              <input type="checkbox" id="mixed-precision" />
+            </div>
+            <div class="field field--toggle">
+              <label for="verbose">🔊 Verbose Logging</label>
+              <input type="checkbox" id="verbose" />
+            </div>
+            <div class="field field--toggle">
+              <label for="use-dp">🧩 DataParallel</label>
+              <input type="checkbox" id="use-dp" />
+            </div>
+            <label class="field">
+              <span class="field__label">🧵 Num Workers</span>
+              <input type="number" id="num-workers" name="num-workers" min="0" max="2048" step="1" />
+            </label>
+          </section>
+
+          <section class="panel" aria-labelledby="modality-config-title">
+            <h2 id="modality-config-title">🎛️ Modality &amp; Method</h2>
+            <label class="field">
+              <span class="field__label">Modality</span>
+              <select id="modality" name="modality" aria-label="Modality selection">
+                <option value="audio">Audio</option>
+                <option value="vision">Vision</option>
+                <option value="graph">Graph</option>
+                <option value="cross-modal">Cross-modal</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field__label">Method</span>
+              <select id="method" name="method" aria-label="Method selection"></select>
+            </label>
+            <label class="field">
+              <span class="field__label">🧪 Variant (optional)</span>
+              <input type="text" id="variant" name="variant" autocomplete="off" />
+            </label>
+          </section>
+
+          <section class="panel" aria-labelledby="datasets-title">
+            <h2 id="datasets-title">📚 Datasets (PyTorch Dataset .py)</h2>
+            <div class="panel__group">
+              <h3 class="panel__group-title">📄 Train Dataset .py</h3>
+              <div id="train-editor" class="ace-editor" aria-label="Train dataset code editor"></div>
+            </div>
+            <label class="field">
+              <span class="field__label">🏷️ Train Dataset Class</span>
+              <input type="text" id="train-class" name="train-class" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span class="field__label">⚙️ Train Dataset kwargs (JSON)</span>
+              <textarea id="train-kwargs" name="train-kwargs" rows="4" aria-describedby="train-kwargs-error" placeholder='{"length": 500, "input_dim": 64}'></textarea>
+              <span class="field__error" id="train-kwargs-error" role="alert"></span>
+            </label>
+
+            <div class="panel__group">
+              <h3 class="panel__group-title">📄 Val Dataset .py (optional)</h3>
+              <div id="val-editor" class="ace-editor" aria-label="Validation dataset code editor"></div>
+            </div>
+            <label class="field">
+              <span class="field__label">🏷️ Val Dataset Class (optional)</span>
+              <input type="text" id="val-class" name="val-class" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span class="field__label">⚙️ Val Dataset kwargs (JSON, optional)</span>
+              <textarea id="val-kwargs" name="val-kwargs" rows="3" aria-describedby="val-kwargs-error"></textarea>
+              <span class="field__error" id="val-kwargs-error" role="alert"></span>
+            </label>
+          </section>
+
+          <section class="panel" aria-labelledby="backbone-title">
+            <h2 id="backbone-title">🧠 Backbone Source</h2>
+            <fieldset class="radio-group" role="radiogroup" aria-labelledby="backbone-title">
+              <label class="radio">
+                <input type="radio" name="backbone-mode" value="none" checked />
+                <span>Default (None)</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="backbone-mode" value="upload" />
+                <span>Upload .py (nn.Module)</span>
+              </label>
+            </fieldset>
+            <div id="backbone-config" class="panel__group backbone-config" hidden>
+              <h3 class="panel__group-title">📄 Backbone .py</h3>
+              <div id="backbone-editor" class="ace-editor" aria-label="Backbone code editor"></div>
+              <label class="field">
+                <span class="field__label">🏷️ Backbone Class</span>
+                <input type="text" id="backbone-class" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span class="field__label">⚙️ Backbone kwargs (JSON)</span>
+                <textarea id="backbone-kwargs" rows="3" aria-describedby="backbone-kwargs-error" placeholder='{"hidden_dim": 256}'></textarea>
+                <span class="field__error" id="backbone-kwargs-error" role="alert"></span>
+              </label>
+              <button id="validate-backbone" class="button button--secondary" type="button">🧪 Validate &amp; Build Backbone</button>
+              <p id="backbone-status" class="status-message" role="status" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="train-hparams-title">
+            <h2 id="train-hparams-title">📈 Training Hyperparameters</h2>
+            <label class="field">
+              <span class="field__label">📦 Batch Size</span>
+              <input type="number" id="batch-size" min="1" max="8192" />
+            </label>
+            <label class="field">
+              <span class="field__label">⏳ Epochs</span>
+              <input type="number" id="epochs" min="1" max="100000" />
+            </label>
+            <label class="field">
+              <span class="field__label">🪙 Learning Rate</span>
+              <input type="number" id="lr" step="any" min="0" max="10" />
+            </label>
+            <label class="field">
+              <span class="field__label">⚖️ Weight Decay</span>
+              <input type="number" id="weight-decay" step="any" min="0" max="1" />
+            </label>
+            <label class="field">
+              <span class="field__label">🧯 Optimizer</span>
+              <select id="optimizer">
+                <option value="adam">Adam</option>
+                <option value="adamw">AdamW</option>
+                <option value="sgd">SGD</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="panel" aria-labelledby="hpo-title">
+            <h2 id="hpo-title">🧪 HPO (Optuna)</h2>
+            <div class="field field--toggle">
+              <label for="use-hpo">Use HPO</label>
+              <input type="checkbox" id="use-hpo" />
+            </div>
+            <label class="field">
+              <span class="field__label">🎯 Trials</span>
+              <input type="number" id="n-trials" min="1" max="10000" />
+            </label>
+            <label class="field">
+              <span class="field__label">🧵 Tuning Epochs</span>
+              <input type="number" id="tuning-epochs" min="1" max="10000" />
+            </label>
+            <div class="field field--toggle">
+              <label for="embedding-logger">🧿 Embedding Logger</label>
+              <input type="checkbox" id="embedding-logger" />
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="api-mode-title">
+            <h2 id="api-mode-title">🔌 API Mode</h2>
+            <div class="field field--toggle">
+              <label for="mock-api">Use Mock Backend</label>
+              <input type="checkbox" id="mock-api" />
+            </div>
+          </section>
         </div>
-        <div class="header-actions">
-          <span id="python-status" class="status-pill" aria-live="polite">Initializing…</span>
-          <button id="theme-toggle" class="icon-button" aria-label="Toggle theme">
-            <span data-theme-icon>🌙</span>
+      </aside>
+
+      <main class="dashboard" aria-live="polite">
+        <header class="dashboard__header">
+          <div class="hero">
+            <div class="hero__badge">🧪</div>
+            <div class="hero__content">
+              <h2 class="hero__title">MK-SSL Research Toolbox — Dashboard</h2>
+              <p class="hero__subtitle">Configure on the left, initialize the trainer, then launch training. Logs stream live below.</p>
+            </div>
+          </div>
+          <button id="theme-toggle" class="button button--icon" type="button" aria-label="Toggle theme" title="Toggle theme">
+            <span class="theme-icon" data-theme-icon>🌙</span>
           </button>
-        </div>
-      </header>
-      <div class="app-main">
-        <aside class="toolbox-panel" aria-label="Configuration toolbox">
-          <section class="panel-card">
-            <div class="panel-header">
-              <h2>Run Blueprint</h2>
-              <p>Define the global metadata for this execution.</p>
-            </div>
-            <div class="form-grid">
-              <label class="field">
-                <span>Run name</span>
-                <input id="run-name" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Save directory</span>
-                <input id="save-dir" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Variant</span>
-                <input id="variant" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Checkpoint interval</span>
-                <input id="checkpoint-interval" type="number" min="1" />
-              </label>
-              <label class="field">
-                <span>Workers</span>
-                <input id="num-workers" type="number" min="0" />
-              </label>
-              <label class="field field--checkbox">
-                <input id="reload-checkpoint" type="checkbox" />
-                <span>Reload last checkpoint</span>
-              </label>
-              <label class="field field--checkbox">
-                <input id="mixed-precision" type="checkbox" />
-                <span>Mixed precision</span>
-              </label>
-              <label class="field field--checkbox">
-                <input id="verbose-mode" type="checkbox" />
-                <span>Verbose logging</span>
-              </label>
-              <label class="field field--checkbox">
-                <input id="data-parallel" type="checkbox" />
-                <span>Use data parallel</span>
-              </label>
-            </div>
-          </section>
+        </header>
 
-          <section class="panel-card">
-            <div class="panel-header">
-              <h2>Method Selector</h2>
-              <p>Pick the modality and self-supervised recipe.</p>
-            </div>
-            <div class="form-grid">
-              <label class="field">
-                <span>Modality</span>
-                <select id="modality">
-                  <option value="audio">Audio</option>
-                  <option value="vision">Vision</option>
-                  <option value="graph">Graph</option>
-                  <option value="cross-modal">Cross-Modal</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Method</span>
-                <select id="method"></select>
-              </label>
-            </div>
-          </section>
+        <section class="metrics" aria-label="Configuration summary">
+          <article class="metric-card">
+            <h3 class="metric-card__label">🧠 Modality</h3>
+            <p class="metric-card__value" id="metric-modality">audio</p>
+          </article>
+          <article class="metric-card">
+            <h3 class="metric-card__label">🧬 Method</h3>
+            <p class="metric-card__value" id="metric-method">Wav2Vec2</p>
+          </article>
+          <article class="metric-card">
+            <h3 class="metric-card__label">📦 Batch Size</h3>
+            <p class="metric-card__value" id="metric-batch">16</p>
+          </article>
+          <article class="metric-card">
+            <h3 class="metric-card__label">⏳ Max Epochs</h3>
+            <p class="metric-card__value" id="metric-epochs">100</p>
+          </article>
+        </section>
 
-          <section class="panel-card">
-            <div class="panel-header">
-              <h2>Dataset Builders</h2>
-              <p>Provide import paths and kwargs for train and validation datasets.</p>
-            </div>
-            <div class="form-grid">
-              <label class="field">
-                <span>Train dataset class</span>
-                <input id="train-class" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Train dataset kwargs</span>
-                <textarea id="train-kwargs" rows="5" spellcheck="false"></textarea>
-                <p id="train-kwargs-error" class="field-error" hidden></p>
-              </label>
-              <label class="field">
-                <span>Validation dataset class</span>
-                <input id="val-class" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Validation dataset kwargs</span>
-                <textarea id="val-kwargs" rows="4" spellcheck="false"></textarea>
-                <p id="val-kwargs-error" class="field-error" hidden></p>
-              </label>
-            </div>
-          </section>
+        <section class="live-metrics" aria-label="Live training metrics">
+          <article class="live-metric">
+            <h3 class="live-metric__label">🎯 Current Epoch</h3>
+            <p class="live-metric__value" id="live-epoch">0</p>
+          </article>
+          <article class="live-metric">
+            <h3 class="live-metric__label">📉 Train Loss</h3>
+            <p class="live-metric__value" id="live-train-loss">-</p>
+          </article>
+          <article class="live-metric">
+            <h3 class="live-metric__label">✅ Val Loss</h3>
+            <p class="live-metric__value" id="live-val-loss">-</p>
+          </article>
+        </section>
 
-          <section class="panel-card">
-            <div class="panel-header">
-              <h2>Backbone Factory</h2>
-              <p>Toggle backbone usage and constructor parameters.</p>
-            </div>
-            <div class="form-grid">
-              <label class="field">
-                <span>Backbone mode</span>
-                <select id="backbone-mode">
-                  <option value="none">None</option>
-                  <option value="existing">Existing</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Backbone class</span>
-                <input id="backbone-class" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Backbone kwargs</span>
-                <textarea id="backbone-kwargs" rows="4" spellcheck="false"></textarea>
-                <p id="backbone-kwargs-error" class="field-error" hidden></p>
-              </label>
-            </div>
-          </section>
+        <section class="controls" aria-label="Training controls">
+          <button id="init-trainer" class="button" type="button">🧱 Initialize Trainer</button>
+          <button id="start-training" class="button button--primary" type="button">▶️ Start / Resume Training</button>
+          <button id="stop-training" class="button button--warn" type="button">⏹️ Stop</button>
+          <button id="clear-logs" class="button button--ghost" type="button">🧹 Clear Logs</button>
+        </section>
 
-          <section class="panel-card">
-            <div class="panel-header">
-              <h2>Hyperparameters</h2>
-              <p>Tune optimizer knobs and scheduler ranges.</p>
-            </div>
-            <div class="form-grid">
-              <label class="field">
-                <span>Batch size</span>
-                <input id="batch-size" type="number" min="1" />
-              </label>
-              <label class="field">
-                <span>Epochs</span>
-                <input id="epochs" type="number" min="1" />
-              </label>
-              <label class="field">
-                <span>Learning rate</span>
-                <input id="learning-rate" type="number" step="0.0001" />
-              </label>
-              <label class="field">
-                <span>Weight decay</span>
-                <input id="weight-decay" type="number" step="0.0001" />
-              </label>
-              <label class="field">
-                <span>Optimizer</span>
-                <input id="optimizer" type="text" autocomplete="off" />
-              </label>
-              <label class="field field--checkbox">
-                <input id="use-hpo" type="checkbox" />
-                <span>Enable Optuna HPO</span>
-              </label>
-              <label class="field">
-                <span>Trials</span>
-                <input id="n-trials" type="number" min="0" />
-              </label>
-              <label class="field">
-                <span>Tuning epochs</span>
-                <input id="tuning-epochs" type="number" min="0" />
-              </label>
-              <label class="field field--checkbox">
-                <input id="embedding-logger" type="checkbox" />
-                <span>Enable embedding logger</span>
-              </label>
-            </div>
-          </section>
+        <section class="status" aria-live="assertive">
+          <p id="status-message">🟡 Training idle.</p>
+          <p id="log-status" class="status__secondary"></p>
+        </section>
 
-          <section class="panel-card">
-            <div class="panel-header">
-              <h2>Weights &amp; Biases</h2>
-              <p>Optional experiment tracking metadata.</p>
-            </div>
-            <div class="form-grid">
-              <label class="field">
-                <span>Project</span>
-                <input id="wandb-project" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Entity</span>
-                <input id="wandb-entity" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Mode</span>
-                <select id="wandb-mode">
-                  <option value="online">online</option>
-                  <option value="offline">offline</option>
-                  <option value="disabled">disabled</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Run name</span>
-                <input id="wandb-run-name" type="text" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Notes</span>
-                <textarea id="wandb-notes" rows="3"></textarea>
-              </label>
-              <label class="field">
-                <span>Tags (JSON array)</span>
-                <textarea id="wandb-tags" rows="3" spellcheck="false"></textarea>
-                <p id="wandb-tags-error" class="field-error" hidden></p>
-              </label>
-              <label class="field">
-                <span>Config (JSON)</span>
-                <textarea id="wandb-config" rows="4" spellcheck="false"></textarea>
-                <p id="wandb-config-error" class="field-error" hidden></p>
-              </label>
-            </div>
-          </section>
-        </aside>
-
-        <main class="workspace" aria-label="Execution workspace">
-          <section class="workspace-hero">
-            <div>
-              <p class="hero-subtitle">Execution overview</p>
-              <h2 class="hero-title">Compose, deploy, and observe your PrismSSL pipelines.</h2>
-            </div>
-            <div class="hero-actions">
-              <button id="btn-start" class="primary-action">Launch training</button>
-              <button id="btn-stop" class="ghost-action" disabled>Stop</button>
-              <button id="btn-clear-logs" class="ghost-action">Clear logs</button>
-            </div>
-          </section>
-
-          <section class="metrics-grid" aria-label="Run snapshot">
-            <article class="metric-card">
-              <p class="metric-label">Modality</p>
-              <p class="metric-value" id="metric-modality">—</p>
-            </article>
-            <article class="metric-card">
-              <p class="metric-label">Method</p>
-              <p class="metric-value" id="metric-method">—</p>
-            </article>
-            <article class="metric-card">
-              <p class="metric-label">Batch size</p>
-              <p class="metric-value" id="metric-batch">—</p>
-            </article>
-            <article class="metric-card">
-              <p class="metric-label">Epochs</p>
-              <p class="metric-value" id="metric-epochs">—</p>
-            </article>
-          </section>
-
-          <section class="workspace-panel">
-            <header class="workspace-panel__header">
-              <div>
-                <h3>Training monitor</h3>
-                <p>Track real-time progress from the Python runtime.</p>
-              </div>
-              <div class="monitor-indicators">
-                <span id="monitor-epoch" class="monitor-value">—</span>
-                <span class="monitor-value">train: <strong id="monitor-train-loss">—</strong></span>
-                <span class="monitor-value">val: <strong id="monitor-val-loss">—</strong></span>
-              </div>
-            </header>
-            <div class="progress" aria-hidden="true">
-              <div id="progress-fill" class="progress__fill"></div>
-            </div>
-            <div class="editor-deck">
-              <article class="editor-card">
-                <header>
-                  <h4>Train dataset code</h4>
-                </header>
-                <div id="train-editor" class="editor"></div>
-              </article>
-              <article class="editor-card">
-                <header>
-                  <h4>Validation dataset code</h4>
-                </header>
-                <div id="val-editor" class="editor"></div>
-              </article>
-              <article class="editor-card">
-                <header>
-                  <h4>Backbone code</h4>
-                </header>
-                <div id="backbone-editor" class="editor"></div>
-              </article>
-            </div>
-          </section>
-
-          <section class="workspace-panel">
-            <header class="workspace-panel__header">
-              <div>
-                <h3>Runtime diagnostics</h3>
-                <p>Send an ad-hoc Python snippet to confirm the engine is responsive.</p>
-              </div>
-              <button id="btn-run-diagnostic" class="ghost-action">Run Python check</button>
-            </header>
-            <textarea id="diagnostic-snippet" class="diagnostic-input" rows="6" spellcheck="false">print("python online")
-for i in range(3):
-    print(f"iteration {i}")
-</textarea>
-            <pre id="diagnostic-output" class="diagnostic-output" data-status="idle">Press “Run Python check” to execute the snippet above.</pre>
-          </section>
-
-          <section class="workspace-panel">
-            <header class="workspace-panel__header">
-              <div>
-                <h3>Activity log</h3>
-                <p>Human-readable stream of actions and status updates.</p>
-              </div>
-            </header>
-            <pre id="log-output" class="log-output" aria-live="polite"></pre>
-          </section>
-        </main>
-      </div>
+        <section class="log-viewer" aria-labelledby="logs-title">
+          <div class="log-viewer__header">
+            <h2 id="logs-title">📜 Live Logs</h2>
+            <span class="log-viewer__hint" id="log-updated">Last updated: —</span>
+          </div>
+          <textarea id="logs" class="log-viewer__area" rows="18" readonly></textarea>
+        </section>
+      </main>
     </div>
+
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
