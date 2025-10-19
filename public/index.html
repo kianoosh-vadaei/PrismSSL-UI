@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PrismSSL Toolbox Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/logo.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.js" integrity="sha512-Z3w3d0ZH0qpTP0TO+GfY7Zb5gENNU3qsqNLz7iTX+YhoCk9tFaLbiYXRJu5X6m3gd3zWux0I5Xa86nKNUkQHOA==" crossorigin="anonymous"></script>
+    <script type="module" src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <img src="./assets/logo.svg" alt="PrismSSL logo" class="brand-logo" />
+          <div>
+            <p class="brand-eyebrow">PrismSSL Toolbox</p>
+            <h1 class="brand-title">Self-Supervised Training Command Center</h1>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span id="python-status" class="status-pill" aria-live="polite">Initializing…</span>
+          <button id="theme-toggle" class="icon-button" aria-label="Toggle theme">
+            <span data-theme-icon>🌙</span>
+          </button>
+        </div>
+      </header>
+      <div class="app-main">
+        <aside class="toolbox-panel" aria-label="Configuration toolbox">
+          <section class="panel-card">
+            <div class="panel-header">
+              <h2>Run Blueprint</h2>
+              <p>Define the global metadata for this execution.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span>Run name</span>
+                <input id="run-name" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Save directory</span>
+                <input id="save-dir" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Variant</span>
+                <input id="variant" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Checkpoint interval</span>
+                <input id="checkpoint-interval" type="number" min="1" />
+              </label>
+              <label class="field">
+                <span>Workers</span>
+                <input id="num-workers" type="number" min="0" />
+              </label>
+              <label class="field field--checkbox">
+                <input id="reload-checkpoint" type="checkbox" />
+                <span>Reload last checkpoint</span>
+              </label>
+              <label class="field field--checkbox">
+                <input id="mixed-precision" type="checkbox" />
+                <span>Mixed precision</span>
+              </label>
+              <label class="field field--checkbox">
+                <input id="verbose-mode" type="checkbox" />
+                <span>Verbose logging</span>
+              </label>
+              <label class="field field--checkbox">
+                <input id="data-parallel" type="checkbox" />
+                <span>Use data parallel</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-header">
+              <h2>Method Selector</h2>
+              <p>Pick the modality and self-supervised recipe.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span>Modality</span>
+                <select id="modality">
+                  <option value="audio">Audio</option>
+                  <option value="vision">Vision</option>
+                  <option value="graph">Graph</option>
+                  <option value="cross-modal">Cross-Modal</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Method</span>
+                <select id="method"></select>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-header">
+              <h2>Dataset Builders</h2>
+              <p>Provide import paths and kwargs for train and validation datasets.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span>Train dataset class</span>
+                <input id="train-class" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Train dataset kwargs</span>
+                <textarea id="train-kwargs" rows="5" spellcheck="false"></textarea>
+                <p id="train-kwargs-error" class="field-error" hidden></p>
+              </label>
+              <label class="field">
+                <span>Validation dataset class</span>
+                <input id="val-class" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Validation dataset kwargs</span>
+                <textarea id="val-kwargs" rows="4" spellcheck="false"></textarea>
+                <p id="val-kwargs-error" class="field-error" hidden></p>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-header">
+              <h2>Backbone Factory</h2>
+              <p>Toggle backbone usage and constructor parameters.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span>Backbone mode</span>
+                <select id="backbone-mode">
+                  <option value="none">None</option>
+                  <option value="existing">Existing</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Backbone class</span>
+                <input id="backbone-class" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Backbone kwargs</span>
+                <textarea id="backbone-kwargs" rows="4" spellcheck="false"></textarea>
+                <p id="backbone-kwargs-error" class="field-error" hidden></p>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-header">
+              <h2>Hyperparameters</h2>
+              <p>Tune optimizer knobs and scheduler ranges.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span>Batch size</span>
+                <input id="batch-size" type="number" min="1" />
+              </label>
+              <label class="field">
+                <span>Epochs</span>
+                <input id="epochs" type="number" min="1" />
+              </label>
+              <label class="field">
+                <span>Learning rate</span>
+                <input id="learning-rate" type="number" step="0.0001" />
+              </label>
+              <label class="field">
+                <span>Weight decay</span>
+                <input id="weight-decay" type="number" step="0.0001" />
+              </label>
+              <label class="field">
+                <span>Optimizer</span>
+                <input id="optimizer" type="text" autocomplete="off" />
+              </label>
+              <label class="field field--checkbox">
+                <input id="use-hpo" type="checkbox" />
+                <span>Enable Optuna HPO</span>
+              </label>
+              <label class="field">
+                <span>Trials</span>
+                <input id="n-trials" type="number" min="0" />
+              </label>
+              <label class="field">
+                <span>Tuning epochs</span>
+                <input id="tuning-epochs" type="number" min="0" />
+              </label>
+              <label class="field field--checkbox">
+                <input id="embedding-logger" type="checkbox" />
+                <span>Enable embedding logger</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel-card">
+            <div class="panel-header">
+              <h2>Weights &amp; Biases</h2>
+              <p>Optional experiment tracking metadata.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span>Project</span>
+                <input id="wandb-project" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Entity</span>
+                <input id="wandb-entity" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Mode</span>
+                <select id="wandb-mode">
+                  <option value="online">online</option>
+                  <option value="offline">offline</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Run name</span>
+                <input id="wandb-run-name" type="text" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Notes</span>
+                <textarea id="wandb-notes" rows="3"></textarea>
+              </label>
+              <label class="field">
+                <span>Tags (JSON array)</span>
+                <textarea id="wandb-tags" rows="3" spellcheck="false"></textarea>
+                <p id="wandb-tags-error" class="field-error" hidden></p>
+              </label>
+              <label class="field">
+                <span>Config (JSON)</span>
+                <textarea id="wandb-config" rows="4" spellcheck="false"></textarea>
+                <p id="wandb-config-error" class="field-error" hidden></p>
+              </label>
+            </div>
+          </section>
+        </aside>
+
+        <main class="workspace" aria-label="Execution workspace">
+          <section class="workspace-hero">
+            <div>
+              <p class="hero-subtitle">Execution overview</p>
+              <h2 class="hero-title">Compose, deploy, and observe your PrismSSL pipelines.</h2>
+            </div>
+            <div class="hero-actions">
+              <button id="btn-start" class="primary-action">Launch training</button>
+              <button id="btn-stop" class="ghost-action" disabled>Stop</button>
+              <button id="btn-clear-logs" class="ghost-action">Clear logs</button>
+            </div>
+          </section>
+
+          <section class="metrics-grid" aria-label="Run snapshot">
+            <article class="metric-card">
+              <p class="metric-label">Modality</p>
+              <p class="metric-value" id="metric-modality">—</p>
+            </article>
+            <article class="metric-card">
+              <p class="metric-label">Method</p>
+              <p class="metric-value" id="metric-method">—</p>
+            </article>
+            <article class="metric-card">
+              <p class="metric-label">Batch size</p>
+              <p class="metric-value" id="metric-batch">—</p>
+            </article>
+            <article class="metric-card">
+              <p class="metric-label">Epochs</p>
+              <p class="metric-value" id="metric-epochs">—</p>
+            </article>
+          </section>
+
+          <section class="workspace-panel">
+            <header class="workspace-panel__header">
+              <div>
+                <h3>Training monitor</h3>
+                <p>Track real-time progress from the Python runtime.</p>
+              </div>
+              <div class="monitor-indicators">
+                <span id="monitor-epoch" class="monitor-value">—</span>
+                <span class="monitor-value">train: <strong id="monitor-train-loss">—</strong></span>
+                <span class="monitor-value">val: <strong id="monitor-val-loss">—</strong></span>
+              </div>
+            </header>
+            <div class="progress" aria-hidden="true">
+              <div id="progress-fill" class="progress__fill"></div>
+            </div>
+            <div class="editor-deck">
+              <article class="editor-card">
+                <header>
+                  <h4>Train dataset code</h4>
+                </header>
+                <div id="train-editor" class="editor"></div>
+              </article>
+              <article class="editor-card">
+                <header>
+                  <h4>Validation dataset code</h4>
+                </header>
+                <div id="val-editor" class="editor"></div>
+              </article>
+              <article class="editor-card">
+                <header>
+                  <h4>Backbone code</h4>
+                </header>
+                <div id="backbone-editor" class="editor"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="workspace-panel">
+            <header class="workspace-panel__header">
+              <div>
+                <h3>Runtime diagnostics</h3>
+                <p>Send an ad-hoc Python snippet to confirm the engine is responsive.</p>
+              </div>
+              <button id="btn-run-diagnostic" class="ghost-action">Run Python check</button>
+            </header>
+            <textarea id="diagnostic-snippet" class="diagnostic-input" rows="6" spellcheck="false">print("python online")
+for i in range(3):
+    print(f"iteration {i}")
+</textarea>
+            <pre id="diagnostic-output" class="diagnostic-output" data-status="idle">Press “Run Python check” to execute the snippet above.</pre>
+          </section>
+
+          <section class="workspace-panel">
+            <header class="workspace-panel__header">
+              <div>
+                <h3>Activity log</h3>
+                <p>Human-readable stream of actions and status updates.</p>
+              </div>
+            </header>
+            <pre id="log-output" class="log-output" aria-live="polite"></pre>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
