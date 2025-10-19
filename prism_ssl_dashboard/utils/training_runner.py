@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import importlib
+import io
 import logging
 import threading
 import time
+import traceback
+import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -11,9 +15,6 @@ import torch
 from flask_socketio import SocketIO
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, BertForPreTraining
-
-
-LOGGER = logging.getLogger(__name__)
 
 
 def bert_loss_fn(outputs, batch):
@@ -43,17 +44,6 @@ class TrainingStatus:
         if not self.start_time:
             return None
         return max(time.time() - self.start_time, 0)
-
-
-class SocketIOLogHandler(logging.Handler):
-    def __init__(self, socketio: SocketIO, room: str) -> None:
-        super().__init__()
-        self.socketio = socketio
-        self.room = room
-
-    def emit(self, record: logging.LogRecord) -> None:
-        msg = self.format(record)
-        self.socketio.emit("train_log", {"message": msg}, to=self.room)
 
 
 class TrainingManager:
@@ -181,35 +171,31 @@ class TrainingManager:
         use_generic: bool,
         generic_args: Dict[str, Any],
     ) -> None:
-        handler = SocketIOLogHandler(self.socketio, "train")
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        logging.getLogger().addHandler(handler)
-        logging.getLogger().setLevel(logging.INFO)
-        try:
-            self._emit_status("Training", "training")
-            self.socketio.emit(
-                "train_log",
-                {"message": f"Starting training (generic={use_generic})"},
-                to="train",
-            )
-            if use_generic:
-                self._run_generic_training(train_args, datasets, generic_args)
-            else:
-                self._run_prism_training(modality, trainer_ctor, train_args, datasets)
-            if self._stop_event.is_set():
-                self.socketio.emit("train_log", {"message": "Training stopped."}, to="train")
-                self._emit_status("Stopped", "error")
-            else:
-                self.socketio.emit("train_done", {"message": "Training complete."}, to="train")
-                self._emit_status("Done", "done")
-        except Exception as exc:  # noqa: BLE001
-            LOGGER.exception("Training failed")
-            self.socketio.emit("train_error", {"error": str(exc)}, to="train")
-            self._emit_status("Error", "error")
-        finally:
-            self.status.running = False
-            self._emit_progress(1.0 if not self._stop_event.is_set() else self.status.progress)
-            logging.getLogger().removeHandler(handler)
+        with self._capture_output():
+            try:
+                self._emit_status("Training", "training")
+                self.socketio.emit(
+                    "train_log",
+                    {"message": f"Starting training (generic={use_generic})"},
+                    to="train",
+                )
+                if use_generic:
+                    self._run_generic_training(train_args, datasets, generic_args)
+                else:
+                    self._run_prism_training(modality, trainer_ctor, train_args, datasets)
+                if self._stop_event.is_set():
+                    self.socketio.emit("train_log", {"message": "Training stopped."}, to="train")
+                    self._emit_status("Stopped", "error")
+                else:
+                    self.socketio.emit("train_done", {"message": "Training complete."}, to="train")
+                    self._emit_status("Done", "done")
+            except Exception as exc:  # noqa: BLE001
+                traceback.print_exc()
+                self.socketio.emit("train_error", {"error": str(exc)}, to="train")
+                self._emit_status("Error", "error")
+            finally:
+                self.status.running = False
+                self._emit_progress(1.0 if not self._stop_event.is_set() else self.status.progress)
 
     def _run_prism_training(
         self,
@@ -316,3 +302,85 @@ class TrainingManager:
             raise RuntimeError("Dataset samples must be str or dict for GenericSSLTrainer")
 
         return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate)
+
+    @contextlib.contextmanager
+    def _capture_output(self):
+        stdout = sys.stdout
+        stderr = sys.stderr
+        redirect_out = SocketIOStreamRedirect(self.socketio, "train", stdout)
+        redirect_err = SocketIOStreamRedirect(self.socketio, "train", stderr)
+        logging_handler = SocketIOLoggingHandler(self.socketio, "train")
+        logging_handler.setLevel(logging.NOTSET)
+        root_logger = logging.getLogger()
+        logging_handler.setFormatter(
+            logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+        )
+        sys.stdout = redirect_out
+        sys.stderr = redirect_err
+        root_logger.addHandler(logging_handler)
+        try:
+            yield
+        finally:
+            redirect_out.flush()
+            redirect_err.flush()
+            root_logger.removeHandler(logging_handler)
+            logging_handler.close()
+            sys.stdout = stdout
+            sys.stderr = stderr
+
+
+class SocketIOStreamRedirect(io.TextIOBase):
+    def __init__(self, socketio: SocketIO, room: str, original):
+        super().__init__()
+        self.socketio = socketio
+        self.room = room
+        self.original = original
+        self._buffer = ""
+        self._lock = threading.Lock()
+
+    def write(self, data: str) -> int:
+        if not isinstance(data, str):
+            data = str(data)
+        if self.original is not None:
+            self.original.write(data)
+        if not data:
+            return 0
+        with self._lock:
+            self._buffer += data
+            while "\n" in self._buffer:
+                line, self._buffer = self._buffer.split("\n", 1)
+                self._emit(line)
+        return len(data)
+
+    def flush(self) -> None:  # noqa: D401
+        if self.original is not None:
+            self.original.flush()
+        with self._lock:
+            if self._buffer:
+                self._emit(self._buffer)
+                self._buffer = ""
+
+    def _emit(self, text: str) -> None:
+        message = text.rstrip("\r")
+        if not message:
+            return
+        self.socketio.emit("train_log", {"message": message}, to=self.room)
+
+    def writable(self) -> bool:  # noqa: D401
+        return True
+
+
+class SocketIOLoggingHandler(logging.Handler):
+    def __init__(self, socketio: SocketIO, room: str) -> None:
+        super().__init__()
+        self.socketio = socketio
+        self.room = room
+
+    def emit(self, record: logging.LogRecord) -> None:  # noqa: D401
+        try:
+            message = self.format(record)
+        except Exception:  # noqa: BLE001
+            message = record.getMessage()
+        if not message:
+            return
+        self.socketio.emit("train_log", {"message": message}, to=self.room)

@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 
+ALLOWED_MODALITIES = {"audio", "vision", "graph", "multimodal"}
+ALLOWED_OPTIMIZERS = {"adamw", "adam", "sgd", "lamb"}
+
+
 class ValidationError(ValueError):
     """Raised when an API payload fails validation."""
 
@@ -24,6 +28,8 @@ def _ensure_number(value: Any, field: str, minimum: Optional[float] = None) -> f
 
 def validate_trainer_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     _require("modality" in payload and payload["modality"], "Modality is required")
+    modality = payload.get("modality")
+    _require(modality in ALLOWED_MODALITIES, "Modality must be one of audio, vision, graph, or multimodal")
     trainer_ctor = payload.get("trainer_ctor", {})
     _require(isinstance(trainer_ctor, dict), "trainer_ctor must be an object")
     _require(trainer_ctor.get("method"), "Trainer method is required")
@@ -38,6 +44,9 @@ def validate_train_args(args: Dict[str, Any]) -> Dict[str, Any]:
     _ensure_number(args.get("batch_size", 0), "batch_size", 1)
     _ensure_number(args.get("epochs", 0), "epochs", 1)
     _ensure_number(args.get("learning_rate", 0), "learning_rate", 0)
+    optimizer = args.get("optimizer")
+    if optimizer is not None:
+        _require(optimizer in ALLOWED_OPTIMIZERS, "Optimizer must be one of adamw, adam, sgd, or lamb")
     if args.get("use_hpo"):
         _ensure_number(args.get("n_trials", 0), "n_trials", 1)
         _ensure_number(args.get("tuning_epochs", 0), "tuning_epochs", 1)
