@@ -11,8 +11,8 @@
 <body>
 <header class="app-header">
     <div class="logo">
-        <div class="orb"></div>
-        <div>
+        <img src="{{ url_for('static', filename='img/logo-placeholder.svg') }}" alt="Prism-SSL Logo" class="logo-image">
+        <div class="logo-text">
             <h1>Prism-SSL Dashboard</h1>
             <p>Configure • Train • Evaluate</p>
         </div>
@@ -72,7 +72,13 @@
                 <div class="grid-2">
                     <div class="field-group">
                         <label for="modality">Modality</label>
-                        <input id="modality" name="modality" type="text" placeholder="audio" required>
+                        <select id="modality" name="modality" required>
+                            <option value="" disabled selected>Select modality</option>
+                            <option value="audio">Audio</option>
+                            <option value="vision">Vision</option>
+                            <option value="graph">Graph</option>
+                            <option value="multimodal">Multimodal</option>
+                        </select>
                     </div>
                     <div class="field-group">
                         <label for="method">Method</label>
@@ -181,7 +187,12 @@
                     </div>
                     <div class="field-group">
                         <label for="optimizer">Optimizer</label>
-                        <input id="optimizer" type="text" value="adamw">
+                        <select id="optimizer">
+                            <option value="adamw" selected>AdamW</option>
+                            <option value="adam">Adam</option>
+                            <option value="sgd">SGD</option>
+                            <option value="lamb">LAMB</option>
+                        </select>
                     </div>
                     <div class="field-group">
                         <label for="start_epoch">Start epoch</label>
