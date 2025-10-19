@@ -1,0 +1,7 @@
+flask
+flask-socketio
+eventlet
+torch
+transformers
+prism-ssl
+wandb
