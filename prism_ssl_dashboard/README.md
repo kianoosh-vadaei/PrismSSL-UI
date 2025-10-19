@@ -20,6 +20,33 @@ python app.py
 
 Then open [http://localhost:5000](http://localhost:5000) in your browser.
 
+## Using the dashboard
+
+1. **Provide your dataset implementation**
+   - Paste the Python file contents that contain one or more `torch.utils.data.Dataset` subclasses into the *Dataset Code* panel.
+   - Click **Detect Classes** to parse the file. A dropdown with the detected dataset classes appears if the code is valid.
+   - Choose the class you want to instantiate for the train/val/test splits and fill in JSON kwargs (for example `{"root": "./data", "split": "train"}`).
+   - Press **Instantiate Datasets**. The backend executes the code in an isolated module, instantiates the selected class, and returns dataset lengths or errors.
+
+2. **Configure the trainer**
+   - Open the **Configure Trainer** tab and set the Prism-SSL modality, constructor parameters, and optional Weights & Biases settings. Defaults are pre-populated; hover tooltips explain each field.
+   - Toggle **Use GenericSSLTrainer (Transformers)** if you want to run the BERT-based example path instead of a modality-specific Prism-SSL trainer.
+
+3. **Set training parameters**
+   - In the **Train / Tune** tab, adjust batch size, epochs, optimizer choice, learning rate, hyperparameter optimization options, and any JSON passthrough kwargs you need.
+   - Press **Start Training**. A background worker begins training and the log console streams Socket.IO events with timestamps, progress, and status updates. Use **Stop** to request a graceful shutdown and **Resume** to continue with the preserved state.
+
+4. **Run evaluation (optional)**
+   - After training, switch to the **Evaluate** tab. Provide evaluation-specific arguments (e.g., `num_classes`) and click **Run Evaluation**. Results and logs appear in the console.
+
+5. **Manage configurations**
+   - The dashboard automatically persists your last-used configuration in `localStorage`. Use the **Export Config** and **Import Config** controls to share or reload setups.
+
+### Tips
+- The status chip above the log console reflects the current worker state (Idle, Training, Stopped, Done, or Error).
+- Toggle the theme switch in the header to alternate between light and dark AI-themed palettes. Your preference is saved locally.
+- If `use_hpo` is enabled, make sure to provide valid values for `n_trials` and `tuning_epochs`; the frontend prevents submission until constraints are satisfied.
+
 ## Notes
 - Executing dataset code executes arbitrary Python on the server. Only run trusted code in an isolated environment.
 - Prism-SSL training often requires GPUs for practical runtimes.
