@@ -55,45 +55,6 @@
             </label>
           </section>
 
-          <section class="panel" aria-labelledby="wandb-setup-title">
-            <h2 id="wandb-setup-title">📡 Weights &amp; Biases</h2>
-            <p class="panel__hint">Configure optional W&amp;B tracking. Leave blank to disable.</p>
-            <label class="field">
-              <span class="field__label">Project</span>
-              <input type="text" id="wandb-project" name="wandb-project" autocomplete="off" placeholder="my-project" />
-            </label>
-            <label class="field">
-              <span class="field__label">Entity</span>
-              <input type="text" id="wandb-entity" name="wandb-entity" autocomplete="off" placeholder="team" />
-            </label>
-            <label class="field">
-              <span class="field__label">Mode</span>
-              <select id="wandb-mode" name="wandb-mode">
-                <option value="online">Online</option>
-                <option value="offline">Offline</option>
-                <option value="disabled">Disabled</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field__label">Run Name Override</span>
-              <input type="text" id="wandb-run-name" name="wandb-run-name" autocomplete="off" placeholder="custom-run-name" />
-            </label>
-            <label class="field">
-              <span class="field__label">Notes</span>
-              <textarea id="wandb-notes" name="wandb-notes" rows="3" placeholder="Experiment notes..."></textarea>
-            </label>
-            <label class="field">
-              <span class="field__label">Tags (JSON list)</span>
-              <textarea id="wandb-tags" name="wandb-tags" rows="2" aria-describedby="wandb-tags-error" placeholder='["baseline", "ablation"]'></textarea>
-              <span class="field__error" id="wandb-tags-error" role="alert"></span>
-            </label>
-            <label class="field">
-              <span class="field__label">Config (JSON)</span>
-              <textarea id="wandb-config" name="wandb-config" rows="3" aria-describedby="wandb-config-error" placeholder='{"seed": 1337}'></textarea>
-              <span class="field__error" id="wandb-config-error" role="alert"></span>
-            </label>
-          </section>
-
           <section class="panel" aria-labelledby="modality-config-title">
             <h2 id="modality-config-title">🎛️ Modality &amp; Method</h2>
             <label class="field">

@@ -26,5 +26,4 @@ routes requests to an in-memory simulator:
 - Mimics trainer initialization and backbone validation responses.
 - Enforces the same payload shape used by the real trainer service.
 
-Disable the toggle to forward requests to your own backend implementation (see
-`backend/server.py` for a reference FastAPI integration with PrismSSL).
+Disable the toggle to forward requests to your own backend implementation.

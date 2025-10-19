@@ -117,12 +117,6 @@ textarea {
   font-size: 1.05rem;
 }
 
-.panel__hint {
-  margin: 0 0 12px;
-  font-size: 0.85rem;
-  color: var(--ai-subtext);
-}
-
 .panel__group {
   display: flex;
   flex-direction: column;

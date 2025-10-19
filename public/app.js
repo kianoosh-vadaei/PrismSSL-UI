@@ -22,13 +22,6 @@ const DEFAULT_CONFIG = () => ({
   verbose: true,
   useDataParallel: false,
   numWorkers: 8,
-  wandbProject: "",
-  wandbEntity: "",
-  wandbMode: "online",
-  wandbRunName: "",
-  wandbNotes: "",
-  wandbTags: "",
-  wandbConfig: "",
   modality: "audio",
   method: "Wav2Vec2",
   variant: "",
@@ -62,8 +55,6 @@ const store = {
     trainKwargsError: "",
     valKwargsError: "",
     backboneKwargsError: "",
-    wandbConfigError: "",
-    wandbTagsError: "",
   },
   runtime: {
     isRunning: false,
@@ -77,8 +68,6 @@ const JSON_FIELD_LABELS = {
   trainKwargsError: "Train dataset kwargs",
   valKwargsError: "Validation dataset kwargs",
   backboneKwargsError: "Backbone kwargs",
-  wandbConfigError: "W&B config",
-  wandbTagsError: "W&B tags",
 };
 
 const api = new ApiClient();
@@ -113,16 +102,6 @@ function debounce(fn, wait = 200) {
     clearTimeout(handle);
     handle = setTimeout(() => fn(...args), wait);
   };
-}
-
-function parseJsonOrNull(value) {
-  if (!value || !value.trim()) return null;
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    console.warn("Failed to parse JSON value", error);
-    return null;
-  }
 }
 
 function $(selector) {
@@ -191,13 +170,6 @@ function bindInputs() {
   bindCheckbox("#verbose", "verbose");
   bindCheckbox("#use-dp", "useDataParallel");
   bindNumberInput("#num-workers", "numWorkers");
-  bindTextInput("#wandb-project", "wandbProject");
-  bindTextInput("#wandb-entity", "wandbEntity");
-  bindSelect("#wandb-mode", "wandbMode");
-  bindTextInput("#wandb-run-name", "wandbRunName");
-  bindTextInput("#wandb-notes", "wandbNotes");
-  bindJsonTextarea("#wandb-tags", "wandbTags", "wandbTagsError", { optional: true });
-  bindJsonTextarea("#wandb-config", "wandbConfig", "wandbConfigError", { optional: true });
   bindSelect("#modality", "modality", () => {
     updateMethodOptions();
     updateMetricsSummary();
@@ -237,13 +209,6 @@ function setInitialValues() {
     ["#verbose", store.config.verbose],
     ["#use-dp", store.config.useDataParallel],
     ["#num-workers", store.config.numWorkers],
-    ["#wandb-project", store.config.wandbProject],
-    ["#wandb-entity", store.config.wandbEntity],
-    ["#wandb-mode", store.config.wandbMode],
-    ["#wandb-run-name", store.config.wandbRunName],
-    ["#wandb-notes", store.config.wandbNotes],
-    ["#wandb-tags", store.config.wandbTags],
-    ["#wandb-config", store.config.wandbConfig],
     ["#modality", store.config.modality],
     ["#method", store.config.method],
     ["#variant", store.config.variant],
@@ -387,10 +352,6 @@ function getSelectorForKey(key) {
       return "#val-kwargs";
     case "backboneKwargs":
       return "#backbone-kwargs";
-    case "wandbConfig":
-      return "#wandb-config";
-    case "wandbTags":
-      return "#wandb-tags";
     default:
       return `#${key}`;
   }
@@ -567,13 +528,6 @@ function assemblePayload() {
       verbose: Boolean(store.config.verbose),
       use_data_parallel: Boolean(store.config.useDataParallel),
       num_workers: Number(store.config.numWorkers),
-      wandb_project: store.config.wandbProject?.trim() || null,
-      wandb_entity: store.config.wandbEntity?.trim() || null,
-      wandb_mode: store.config.wandbMode || "online",
-      wandb_run_name: store.config.wandbRunName?.trim() || null,
-      wandb_notes: store.config.wandbNotes?.trim() || null,
-      wandb_tags: parseJsonOrNull(store.config.wandbTags),
-      wandb_config: parseJsonOrNull(store.config.wandbConfig),
     },
     modality: store.config.modality,
     method: store.config.method,
