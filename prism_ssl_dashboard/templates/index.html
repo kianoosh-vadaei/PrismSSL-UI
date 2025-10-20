@@ -1,281 +1,285 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prism-SSL Training Dashboard</title>
+    <title>PrismSSL Research Console</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script defer src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-XWMW0CQpZgdKzac8AjtKoaVHgMHqmpYyqn1nVbWcv16O3MHuvb6jVWeItPxO2QYl" crossorigin="anonymous"></script>
     <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
 </head>
 <body>
-<header class="app-header">
-    <div class="logo">
-        <img src="{{ url_for('static', filename='img/logo-placeholder.svg') }}" alt="Prism-SSL Logo" class="logo-image">
-        <div class="logo-text">
-            <h1>Prism-SSL Dashboard</h1>
-            <p>Configure • Train • Evaluate</p>
+    <header class="page-header">
+        <div>
+            <h1>PrismSSL Research Console</h1>
+            <p>A minimal workspace for curating datasets and preparing training parameters.</p>
         </div>
-    </div>
-    <div class="header-actions">
-        <button id="export-config" class="ghost-button" title="Export configuration to JSON">Export</button>
-        <label for="import-config" class="ghost-button" title="Import configuration from JSON">
-            <input type="file" id="import-config" accept="application/json" hidden>
-            Import
-        </label>
-        <button id="theme-toggle" class="toggle" aria-label="Toggle theme">🌞</button>
-    </div>
-</header>
-<main class="layout">
-    <aside class="dataset-panel">
-        <section class="panel-section">
-            <div class="panel-header">
-                <h2>Dataset</h2>
-                <span class="security-badge" title="Executing dataset code runs arbitrary Python. Use trusted code only.">Trusted Environment Required</span>
-            </div>
-            <p class="hint">Paste your PyTorch Dataset class below. The server will detect subclasses of <code>torch.utils.data.Dataset</code>.</p>
-            <textarea id="dataset-code" class="code-editor" placeholder="# Paste Dataset code here"></textarea>
-            <div class="panel-actions">
-                <button id="detect-dataset" class="primary">Detect Classes</button>
-                <button id="clear-dataset" class="ghost-button">Clear</button>
-            </div>
-            <div class="field-group">
-                <label for="dataset-class">Detected classes</label>
-                <select id="dataset-class">
-                    <option value="" disabled selected>Select a class</option>
-                </select>
-            </div>
-            <details open>
-                <summary>Train kwargs (JSON)</summary>
-                <textarea id="dataset-kwargs-train" class="json-editor" placeholder='{"root": "./data", "split": "train"}'></textarea>
-            </details>
-            <details>
-                <summary>Validation kwargs (JSON)</summary>
-                <textarea id="dataset-kwargs-val" class="json-editor" placeholder='{"split": "val"}'></textarea>
-            </details>
-            <details>
-                <summary>Test kwargs (JSON)</summary>
-                <textarea id="dataset-kwargs-test" class="json-editor" placeholder='{"split": "test"}'></textarea>
-            </details>
-            <button id="instantiate-dataset" class="secondary full">Instantiate datasets</button>
-            <div id="dataset-summary" class="dataset-summary"></div>
+        <div class="header-actions">
+            <button id="export-config" type="button" class="ghost">Export JSON</button>
+            <label class="ghost" for="import-config">
+                <input type="file" id="import-config" accept="application/json" hidden>
+                Import JSON
+            </label>
+            <button id="theme-toggle" type="button" class="ghost" aria-label="Toggle theme">Light</button>
+        </div>
+    </header>
+
+    <main class="page">
+        <section class="column">
+            <article class="panel">
+                <header class="panel-header">
+                    <div>
+                        <h2>Dataset Definition</h2>
+                        <p>Paste your dataset implementation and select the class you intend to use.</p>
+                    </div>
+                </header>
+                <label class="field">
+                    <span>Dataset source code</span>
+                    <textarea id="dataset-code" rows="16" placeholder="# Paste the dataset class definition here"></textarea>
+                </label>
+                <div class="cluster">
+                    <button id="detect-dataset" type="button" class="primary">Detect classes</button>
+                    <button id="clear-dataset" type="button" class="ghost">Clear</button>
+                </div>
+                <label class="field">
+                    <span>Available classes</span>
+                    <select id="dataset-class">
+                        <option value="" disabled selected>Select a class</option>
+                    </select>
+                </label>
+                <details class="fieldset" open>
+                    <summary>Training arguments (JSON)</summary>
+                    <textarea id="dataset-kwargs-train" rows="4" placeholder='{"root": "./data", "split": "train"}'></textarea>
+                </details>
+                <details class="fieldset">
+                    <summary>Validation arguments (JSON)</summary>
+                    <textarea id="dataset-kwargs-val" rows="3" placeholder='{"split": "val"}'></textarea>
+                </details>
+                <details class="fieldset">
+                    <summary>Test arguments (JSON)</summary>
+                    <textarea id="dataset-kwargs-test" rows="3" placeholder='{"split": "test"}'></textarea>
+                </details>
+                <button id="instantiate-dataset" type="button" class="secondary full">Preview dataset summary</button>
+                <div id="dataset-summary" class="summary"></div>
+            </article>
         </section>
-    </aside>
-    <section class="main-content">
-        <div class="tabs">
-            <button class="tab active" data-target="trainer-config">Configure Trainer</button>
-            <button class="tab" data-target="train-config">Train / Tune</button>
-            <button class="tab" data-target="eval-config">Evaluate</button>
-        </div>
-        <section id="trainer-config" class="tab-panel active">
-            <form id="trainer-form">
-                <div class="grid-2">
-                    <div class="field-group">
-                        <label for="modality">Modality</label>
-                        <select id="modality" name="modality" required>
-                            <option value="" disabled selected>Select modality</option>
+
+        <section class="column">
+            <article class="panel">
+                <header class="panel-header">
+                    <div>
+                        <h2>Trainer specification</h2>
+                        <p>Choose the modality and configure trainer options required for execution.</p>
+                    </div>
+                </header>
+                <div class="grid">
+                    <label class="field">
+                        <span>Modality</span>
+                        <select id="modality" required>
+                            <option value="" disabled selected>Select</option>
                             <option value="audio">Audio</option>
                             <option value="vision">Vision</option>
                             <option value="graph">Graph</option>
                             <option value="multimodal">Multimodal</option>
                         </select>
-                    </div>
-                    <div class="field-group">
-                        <label for="method">Method</label>
-                        <input id="method" name="method" type="text" placeholder="ssl_method" required>
-                    </div>
-                    <div class="field-group">
-                        <label for="variant">Variant</label>
-                        <input id="variant" name="variant" type="text" value="base">
-                    </div>
-                    <div class="field-group">
-                        <label for="save_dir">Save directory</label>
-                        <input id="save_dir" name="save_dir" type="text" value="./checkpoints">
-                    </div>
-                    <div class="field-group">
-                        <label for="checkpoint_interval">Checkpoint interval</label>
-                        <input id="checkpoint_interval" name="checkpoint_interval" type="number" min="1" value="10">
-                    </div>
-                    <div class="field-group">
-                        <label for="num_workers">Num workers</label>
-                        <input id="num_workers" name="num_workers" type="number" min="0" placeholder="Auto">
-                    </div>
+                    </label>
+                    <label class="field">
+                        <span>Method</span>
+                        <input id="method" type="text" placeholder="ssl_method" required>
+                    </label>
+                    <label class="field">
+                        <span>Variant</span>
+                        <input id="variant" type="text" value="base">
+                    </label>
+                    <label class="field">
+                        <span>Checkpoint interval</span>
+                        <input id="checkpoint_interval" type="number" min="1" value="10">
+                    </label>
+                    <label class="field">
+                        <span>Save directory</span>
+                        <input id="save_dir" type="text" value="./checkpoints">
+                    </label>
+                    <label class="field">
+                        <span>Data loader workers</span>
+                        <input id="num_workers" type="number" min="0" placeholder="Auto">
+                    </label>
                 </div>
-                <div class="switch-row">
+                <div class="checks">
                     <label><input type="checkbox" id="reload_checkpoint"> Reload checkpoint</label>
-                    <label><input type="checkbox" id="verbose" checked> Verbose</label>
+                    <label><input type="checkbox" id="verbose" checked> Verbose logging</label>
                     <label><input type="checkbox" id="mixed_precision_training" checked> Mixed precision</label>
                     <label><input type="checkbox" id="use_data_parallel"> Data parallel</label>
                 </div>
-                <fieldset class="fieldset">
-                    <legend>Weights & Biases (optional)</legend>
-                    <div class="grid-3">
-                        <div class="field-group">
-                            <label for="wandb_project">Project</label>
+                <details class="fieldset">
+                    <summary>Weights &amp; Biases</summary>
+                    <div class="grid">
+                        <label class="field">
+                            <span>Project</span>
                             <input id="wandb_project" type="text" placeholder="prism-ssl">
-                        </div>
-                        <div class="field-group">
-                            <label for="wandb_entity">Entity</label>
+                        </label>
+                        <label class="field">
+                            <span>Entity</span>
                             <input id="wandb_entity" type="text" placeholder="team">
-                        </div>
-                        <div class="field-group">
-                            <label for="wandb_run_name">Run name</label>
+                        </label>
+                        <label class="field">
+                            <span>Run name</span>
                             <input id="wandb_run_name" type="text" placeholder="experiment-01">
-                        </div>
-                        <div class="field-group">
-                            <label for="wandb_mode">Mode</label>
+                        </label>
+                        <label class="field">
+                            <span>Mode</span>
                             <select id="wandb_mode">
                                 <option value="online">online</option>
                                 <option value="offline">offline</option>
                                 <option value="disabled">disabled</option>
                             </select>
-                        </div>
-                        <div class="field-group">
-                            <label for="wandb_notes">Notes</label>
-                            <textarea id="wandb_notes" rows="2"></textarea>
-                        </div>
-                        <div class="field-group">
-                            <label for="wandb_tags">Tags (comma separated)</label>
-                            <input id="wandb_tags" type="text" placeholder="baseline,ssl">
-                        </div>
+                        </label>
                     </div>
-                    <details class="advanced">
-                        <summary>Advanced W&B config (JSON)</summary>
-                        <textarea id="wandb_config" class="json-editor" placeholder='{"lr": 1e-4}'></textarea>
-                    </details>
-                </fieldset>
-                <fieldset class="fieldset">
-                    <legend>GenericSSLTrainer (Transformers)</legend>
-                    <div class="switch-row">
-                        <label><input type="checkbox" id="use_generic"> Use GenericSSLTrainer</label>
-                    </div>
-                    <div class="grid-3" id="generic-settings" hidden>
-                        <div class="field-group">
-                            <label for="generic_model_name">Model name</label>
+                    <label class="field">
+                        <span>Notes</span>
+                        <textarea id="wandb_notes" rows="2"></textarea>
+                    </label>
+                    <label class="field">
+                        <span>Tags (comma separated)</span>
+                        <input id="wandb_tags" type="text" placeholder="baseline,ssl">
+                    </label>
+                    <label class="field">
+                        <span>Advanced configuration</span>
+                        <textarea id="wandb_config" rows="3" placeholder='{"lr": 1e-4}'></textarea>
+                    </label>
+                </details>
+                <details class="fieldset">
+                    <summary>GenericSSL (optional)</summary>
+                    <label class="toggle"><input type="checkbox" id="use_generic"> Enable generic trainer</label>
+                    <div id="generic-settings" class="grid" hidden>
+                        <label class="field">
+                            <span>Model name</span>
                             <input id="generic_model_name" type="text" value="bert-base-uncased">
-                        </div>
-                        <div class="field-group">
-                            <label for="generic_epochs">Epochs</label>
+                        </label>
+                        <label class="field">
+                            <span>Epochs</span>
                             <input id="generic_epochs" type="number" min="1" value="10">
-                        </div>
-                        <div class="field-group">
-                            <label><input type="checkbox" id="generic_use_lora" checked> Use LoRA</label>
-                        </div>
+                        </label>
+                        <label class="field">
+                            <span>Use LoRA</span>
+                            <input id="generic_use_lora" type="checkbox" checked>
+                        </label>
                     </div>
-                    <p class="hint">Generic path builds a BERT model and tokenizer using Transformers and applies a placeholder loss compatible with Prism SSL examples.</p>
-                </fieldset>
-            </form>
-        </section>
-        <section id="train-config" class="tab-panel">
-            <form id="train-form">
-                <div class="grid-3">
-                    <div class="field-group">
-                        <label for="batch_size">Batch size</label>
+                </details>
+            </article>
+
+            <article class="panel">
+                <header class="panel-header">
+                    <div>
+                        <h2>Training schedule</h2>
+                        <p>Define the optimisation routine that will be executed in the terminal.</p>
+                    </div>
+                </header>
+                <div class="grid">
+                    <label class="field">
+                        <span>Batch size</span>
                         <input id="batch_size" type="number" min="1" value="16">
-                    </div>
-                    <div class="field-group">
-                        <label for="epochs">Epochs</label>
+                    </label>
+                    <label class="field">
+                        <span>Epochs</span>
                         <input id="epochs" type="number" min="1" value="100">
-                    </div>
-                    <div class="field-group">
-                        <label for="learning_rate">Learning rate</label>
+                    </label>
+                    <label class="field">
+                        <span>Learning rate</span>
                         <input id="learning_rate" type="number" step="any" min="0" value="0.0001">
-                    </div>
-                    <div class="field-group">
-                        <label for="weight_decay">Weight decay</label>
+                    </label>
+                    <label class="field">
+                        <span>Weight decay</span>
                         <input id="weight_decay" type="number" step="any" min="0" value="0.01">
-                    </div>
-                    <div class="field-group">
-                        <label for="optimizer">Optimizer</label>
+                    </label>
+                    <label class="field">
+                        <span>Optimizer</span>
                         <select id="optimizer">
                             <option value="adamw" selected>AdamW</option>
                             <option value="adam">Adam</option>
                             <option value="sgd">SGD</option>
                             <option value="lamb">LAMB</option>
                         </select>
-                    </div>
-                    <div class="field-group">
-                        <label for="start_epoch">Start epoch</label>
+                    </label>
+                    <label class="field">
+                        <span>Start epoch</span>
                         <input id="start_epoch" type="number" min="0" value="0">
-                    </div>
-                    <div class="field-group">
-                        <label for="start_iteration">Start iteration</label>
+                    </label>
+                    <label class="field">
+                        <span>Start iteration</span>
                         <input id="start_iteration" type="number" min="0" value="0">
-                    </div>
-                    <div class="field-group">
-                        <label for="n_trials">HPO trials</label>
+                    </label>
+                    <label class="field">
+                        <span>Extra arguments (JSON)</span>
+                        <textarea id="train_kwargs" rows="3" placeholder='{"gradient_clip": 1.0}'></textarea>
+                    </label>
+                </div>
+                <div class="checks">
+                    <label><input type="checkbox" id="use_hpo"> Enable hyper-parameter search</label>
+                    <label><input type="checkbox" id="use_embedding_logger"> Log embeddings</label>
+                </div>
+                <div class="grid">
+                    <label class="field">
+                        <span>HPO trials</span>
                         <input id="n_trials" type="number" min="1" value="20">
-                    </div>
-                    <div class="field-group">
-                        <label for="tuning_epochs">Tuning epochs</label>
+                    </label>
+                    <label class="field">
+                        <span>Tuning epochs</span>
                         <input id="tuning_epochs" type="number" min="1" value="5">
-                    </div>
+                    </label>
                 </div>
-                <div class="switch-row">
-                    <label><input type="checkbox" id="use_hpo"> Use HPO</label>
-                    <label><input type="checkbox" id="use_embedding_logger"> Embedding logger</label>
-                </div>
-                <details class="advanced">
-                    <summary>Additional kwargs (JSON)</summary>
-                    <textarea id="train_kwargs" class="json-editor" placeholder='{"gradient_clip": 1.0}'></textarea>
-                </details>
-            </form>
-        </section>
-        <section id="eval-config" class="tab-panel">
-            <form id="eval-form">
-                <div class="grid-3">
-                    <div class="field-group">
-                        <label for="eval_num_classes">Num classes</label>
-                        <input id="eval_num_classes" type="number" min="1" value="2">
+            </article>
+
+            <article class="panel">
+                <header class="panel-header">
+                    <div>
+                        <h2>Evaluation template</h2>
+                        <p>Optional settings for downstream evaluation once training has finished.</p>
                     </div>
-                    <div class="field-group">
-                        <label for="eval_batch_size">Batch size</label>
+                </header>
+                <label class="toggle"><input type="checkbox" id="include-eval" checked> Include evaluation parameters</label>
+                <div id="evaluation-fields" class="grid">
+                    <label class="field">
+                        <span>Classes</span>
+                        <input id="eval_num_classes" type="number" min="1" value="10">
+                    </label>
+                    <label class="field">
+                        <span>Batch size</span>
                         <input id="eval_batch_size" type="number" min="1" value="64">
-                    </div>
-                    <div class="field-group">
-                        <label for="eval_lr">Learning rate</label>
+                    </label>
+                    <label class="field">
+                        <span>Learning rate</span>
                         <input id="eval_lr" type="number" step="any" min="0" value="0.001">
-                    </div>
-                    <div class="field-group">
-                        <label for="eval_epochs">Epochs</label>
+                    </label>
+                    <label class="field">
+                        <span>Epochs</span>
                         <input id="eval_epochs" type="number" min="1" value="10">
-                    </div>
+                    </label>
+                    <label class="field">
+                        <span>Freeze backbone</span>
+                        <input id="eval_freeze_backbone" type="checkbox" checked>
+                    </label>
+                    <label class="field">
+                        <span>Extra arguments (JSON)</span>
+                        <textarea id="eval_kwargs" rows="3" placeholder='{"dropout": 0.2}'></textarea>
+                    </label>
                 </div>
-                <div class="switch-row">
-                    <label><input type="checkbox" id="eval_freeze_backbone" checked> Freeze backbone</label>
-                </div>
-                <details class="advanced">
-                    <summary>Evaluation kwargs (JSON)</summary>
-                    <textarea id="eval_kwargs" class="json-editor" placeholder='{"metric": "accuracy"}'></textarea>
-                </details>
-                <button id="start-eval" class="secondary">Run evaluation</button>
-            </form>
+            </article>
         </section>
-        <section class="run-console">
-            <div class="console-header">
-                <div class="status-chip" id="run-status">Idle</div>
-                <div class="time-info">
-                    <span id="elapsed">Elapsed: 00:00</span>
-                    <span id="eta">ETA: --</span>
-                </div>
-                <div class="console-actions">
-                    <button id="start-train" class="primary">Start</button>
-                    <button id="stop-train" class="danger" disabled>Stop</button>
-                    <button id="resume-train" class="ghost-button" disabled>Resume</button>
-                </div>
+    </main>
+
+    <section class="preview">
+        <div class="preview-header">
+            <div>
+                <h2>Run sheet</h2>
+                <p>Validate inputs and export a structured configuration for terminal execution.</p>
             </div>
-            <div class="progress">
-                <div id="progress-bar"></div>
-            </div>
-            <div class="log-controls">
-                <label><input type="checkbox" id="auto-scroll" checked> Auto-scroll</label>
-                <button id="clear-logs" class="ghost-button">Clear Logs</button>
-            </div>
-            <pre id="log-output" class="log-output"></pre>
-        </section>
+            <button id="generate-run-sheet" type="button" class="primary">Generate preview</button>
+        </div>
+        <div id="message-area" role="status" aria-live="polite"></div>
+        <pre id="config-preview" class="config-preview" aria-label="Configuration preview">{\n  "trainer": {},\n  "train": {},\n  "dataset": {}\n}</pre>
     </section>
-</main>
-{% include 'partials/toasts.html' %}
-{% include 'partials/modals.html' %}
+
+    <footer class="page-footer">
+        <p>Prepared configurations are intended to be executed manually in the PrismSSL training scripts.</p>
+    </footer>
 </body>
 </html>
