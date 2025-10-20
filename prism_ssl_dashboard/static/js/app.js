@@ -3,6 +3,8 @@ const STORAGE_KEY = 'prism-console-config-v2';
 const state = {
     datasetSummary: {},
     lastConfig: null,
+    trainingStatus: 'idle',
+    trainingPoller: null,
 };
 
 function $(selector) {
@@ -20,6 +22,59 @@ function showMessage(message, type = 'neutral') {
     } else if (type === 'error') {
         area.classList.add('message-error');
     }
+}
+
+function stopTrainingPoller() {
+    if (state.trainingPoller) {
+        clearInterval(state.trainingPoller);
+        state.trainingPoller = null;
+    }
+}
+
+function startTrainingPoller() {
+    if (state.trainingPoller) return;
+    state.trainingPoller = setInterval(() => {
+        checkTrainingStatus({ notifyOnComplete: true });
+    }, 4000);
+}
+
+function applyTrainingStatus(running, options = {}) {
+    const previous = state.trainingStatus;
+    state.trainingStatus = running ? 'running' : 'idle';
+    const button = $('#start-pretext-training');
+    if (button) {
+        const idleLabel = button.dataset.labelIdle || 'Start pretext training';
+        const runningLabel = button.dataset.labelRunning || 'Training…';
+        if (running) {
+            button.disabled = true;
+            button.textContent = runningLabel;
+        } else {
+            button.disabled = false;
+            button.textContent = idleLabel;
+        }
+    }
+    if (running) {
+        startTrainingPoller();
+    } else {
+        stopTrainingPoller();
+        if (options.notifyOnComplete && previous === 'running') {
+            showMessage('Pretext training finished.', 'success');
+        }
+    }
+}
+
+function checkTrainingStatus(options = {}) {
+    return fetch('/api/train/status')
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) throw new Error(data.error || 'Unable to determine training status.');
+            applyTrainingStatus(Boolean(data.running), {
+                notifyOnComplete: Boolean(options.notifyOnComplete),
+            });
+        })
+        .catch((error) => {
+            console.warn('Unable to fetch training status', error);
+        });
 }
 
 function getStoredTheme() {
@@ -447,6 +502,43 @@ function generateRunSheet() {
     }
 }
 
+function startPretextTraining() {
+    showMessage('');
+    let config;
+    try {
+        config = gatherFullConfig();
+        persistConfig(config);
+    } catch (error) {
+        showMessage(error.message, 'error');
+        return;
+    }
+    const button = $('#start-pretext-training');
+    if (button) {
+        button.disabled = true;
+    }
+    fetch('/api/train/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config }),
+    })
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) {
+                const message =
+                    Object.values(data.errors || {}).join('\n') ||
+                    data.error ||
+                    'Unable to start training.';
+                throw new Error(message);
+            }
+            applyTrainingStatus(true);
+            showMessage('Pretext training started in the background.', 'success');
+        })
+        .catch((error) => {
+            applyTrainingStatus(false, { notifyOnComplete: false });
+            showMessage(error.message, 'error');
+        });
+}
+
 function clearDataset() {
     $('#dataset-code').value = '';
     $('#dataset-class').innerHTML = '<option value="" disabled selected>Select a class</option>';
@@ -462,6 +554,7 @@ function bindEvents() {
     $('#export-config').addEventListener('click', exportConfig);
     $('#import-config').addEventListener('change', importConfig);
     $('#generate-run-sheet').addEventListener('click', generateRunSheet);
+    $('#start-pretext-training').addEventListener('click', startPretextTraining);
     $('#use_generic').addEventListener('change', updateGenericVisibility);
     $('#include-eval').addEventListener('change', updateEvaluationVisibility);
 }
@@ -473,4 +566,5 @@ window.addEventListener('DOMContentLoaded', () => {
     updateGenericVisibility();
     updateEvaluationVisibility();
     bindEvents();
+    checkTrainingStatus();
 });
