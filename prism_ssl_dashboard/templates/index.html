@@ -272,7 +272,18 @@
                 <h2>Run sheet</h2>
                 <p>Validate inputs and export a structured configuration for terminal execution.</p>
             </div>
-            <button id="generate-run-sheet" type="button" class="primary">Generate preview</button>
+            <div class="preview-actions">
+                <button id="generate-run-sheet" type="button" class="primary">Generate preview</button>
+                <button
+                    id="start-pretext-training"
+                    type="button"
+                    class="secondary"
+                    data-label-idle="Start pretext training"
+                    data-label-running="Training…"
+                >
+                    Start pretext training
+                </button>
+            </div>
         </div>
         <div id="message-area" role="status" aria-live="polite"></div>
         <pre id="config-preview" class="config-preview" aria-label="Configuration preview">{\n  "trainer": {},\n  "train": {},\n  "dataset": {}\n}</pre>
