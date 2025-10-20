@@ -34,7 +34,12 @@
                 </header>
                 <label class="field">
                     <span>Dataset source code</span>
-                    <textarea id="dataset-code" rows="16" placeholder="# Paste the dataset class definition here"></textarea>
+                    <textarea
+                        id="dataset-code"
+                        class="code-input"
+                        rows="16"
+                        placeholder="# Paste the dataset class definition here"
+                    ></textarea>
                 </label>
                 <div class="cluster">
                     <button id="detect-dataset" type="button" class="primary">Detect classes</button>
@@ -57,6 +62,14 @@
                 <details class="fieldset">
                     <summary>Test arguments (JSON)</summary>
                     <textarea id="dataset-kwargs-test" rows="3" placeholder='{"split": "test"}'></textarea>
+                    <label class="field nested">
+                        <span>Test dataset location (optional)</span>
+                        <input
+                            id="dataset-test-path"
+                            type="text"
+                            placeholder="./data/test/annotations.json"
+                        />
+                    </label>
                 </details>
                 <button id="instantiate-dataset" type="button" class="secondary full">Preview dataset summary</button>
                 <div id="dataset-summary" class="summary"></div>
@@ -267,26 +280,48 @@
     </main>
 
     <section class="preview">
-        <div class="preview-header">
-            <div>
-                <h2>Run sheet</h2>
-                <p>Validate inputs and export a structured configuration for terminal execution.</p>
+        <article class="preview-card">
+            <div class="preview-header">
+                <div>
+                    <h2>Training run sheet</h2>
+                    <p>Validate inputs and export a structured configuration for pretext training.</p>
+                </div>
+                <div class="preview-actions">
+                    <button id="generate-train-sheet" type="button" class="primary">Generate training preview</button>
+                    <button
+                        id="start-pretext-training"
+                        type="button"
+                        class="secondary"
+                        data-label-idle="Start pretext training"
+                        data-label-running="Training…"
+                    >
+                        Start pretext training
+                    </button>
+                </div>
             </div>
-            <div class="preview-actions">
-                <button id="generate-run-sheet" type="button" class="primary">Generate preview</button>
-                <button
-                    id="start-pretext-training"
-                    type="button"
-                    class="secondary"
-                    data-label-idle="Start pretext training"
-                    data-label-running="Training…"
-                >
-                    Start pretext training
-                </button>
+            <div id="message-area" role="status" aria-live="polite"></div>
+            <pre
+                id="train-config-preview"
+                class="config-preview"
+                aria-label="Training configuration preview"
+            >{\n  "trainer": {},\n  "train": {},\n  "dataset": {}\n}</pre>
+        </article>
+        <article class="preview-card">
+            <div class="preview-header">
+                <div>
+                    <h2>Evaluation sheet</h2>
+                    <p>Prepare downstream evaluation parameters after a test dataset is provided.</p>
+                </div>
+                <div class="preview-actions">
+                    <button id="generate-eval-sheet" type="button" class="secondary">Generate evaluation preview</button>
+                </div>
             </div>
-        </div>
-        <div id="message-area" role="status" aria-live="polite"></div>
-        <pre id="config-preview" class="config-preview" aria-label="Configuration preview">{\n  "trainer": {},\n  "train": {},\n  "dataset": {}\n}</pre>
+            <pre
+                id="eval-config-preview"
+                class="config-preview"
+                aria-label="Evaluation configuration preview"
+            >{\n  "eval": {}\n}</pre>
+        </article>
     </section>
 
     <footer class="page-footer">

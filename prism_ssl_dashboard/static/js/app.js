@@ -183,6 +183,8 @@ function instantiateDatasets() {
         kwargs_val: kwargsVal,
         kwargs_test: kwargsTest,
     };
+    const testPath = sanitize($('#dataset-test-path').value);
+    payload.test_data_path = testPath || null;
     fetch('/api/dataset/instantiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -313,12 +315,14 @@ function collectDatasetConfig() {
     const className = $('#dataset-class').value;
     if (!code.trim()) throw new Error('Dataset code is required.');
     if (!className) throw new Error('Select a dataset class.');
+    const testPath = sanitize($('#dataset-test-path').value);
     return {
         code,
         class_name: className,
         kwargs_train: parseJson($('#dataset-kwargs-train').value, {}),
         kwargs_val: parseJson($('#dataset-kwargs-val').value, null),
         kwargs_test: parseJson($('#dataset-kwargs-test').value, null),
+        test_data_path: testPath || null,
     };
 }
 
@@ -366,6 +370,7 @@ function restoreConfig() {
             $('#dataset-kwargs-test').value = config.dataset.kwargs_test
                 ? JSON.stringify(config.dataset.kwargs_test, null, 2)
                 : '';
+            $('#dataset-test-path').value = config.dataset.test_data_path || '';
         }
         state.datasetSummary = config.dataset_summary || {};
         if (config.trainer) {
@@ -462,10 +467,14 @@ function importConfig(event) {
 
 function updateEvaluationVisibility() {
     const container = $('#evaluation-fields');
+    const button = $('#generate-eval-sheet');
     if ($('#include-eval').checked) {
         container.style.display = '';
+        if (button) button.disabled = false;
     } else {
         container.style.display = 'none';
+        if (button) button.disabled = true;
+        $('#eval-config-preview').textContent = '{\n  "eval": {}\n}';
     }
 }
 
@@ -473,7 +482,7 @@ function updateGenericVisibility() {
     $('#generic-settings').hidden = !$('#use_generic').checked;
 }
 
-function generateRunSheet() {
+function generateTrainingPreview() {
     showMessage('');
     try {
         const config = gatherFullConfig();
@@ -491,8 +500,8 @@ function generateRunSheet() {
             .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
             .then(({ ok, data }) => {
                 if (!ok) throw new Error(Object.values(data.errors || {}).join('\n') || 'Validation failed.');
-                $('#config-preview').textContent = JSON.stringify(data.config, null, 2);
-                showMessage('Configuration validated. You can now run training from the terminal.', 'success');
+                $('#train-config-preview').textContent = JSON.stringify(data.config, null, 2);
+                showMessage('Training configuration validated. You can now run training from the terminal.', 'success');
             })
             .catch((error) => {
                 showMessage(error.message, 'error');
@@ -500,6 +509,52 @@ function generateRunSheet() {
     } catch (error) {
         showMessage(error.message, 'error');
     }
+}
+
+function generateEvaluationPreview() {
+    showMessage('');
+    if (!$('#include-eval').checked) {
+        showMessage('Enable evaluation parameters to generate a preview.', 'error');
+        return;
+    }
+    let config;
+    try {
+        config = gatherFullConfig();
+        persistConfig(config);
+    } catch (error) {
+        showMessage(error.message, 'error');
+        return;
+    }
+    if (!config.eval) {
+        showMessage('Provide evaluation parameters to generate a preview.', 'error');
+        return;
+    }
+    if (!config.dataset.kwargs_test) {
+        showMessage('Add test dataset arguments before generating an evaluation preview.', 'error');
+        return;
+    }
+    fetch('/api/config/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            trainer: config.trainer,
+            train_args: config.train,
+            eval_args: config.eval || null,
+            dataset: config.dataset,
+        }),
+    })
+        .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) throw new Error(Object.values(data.errors || {}).join('\n') || 'Validation failed.');
+            if (!data.config.eval) {
+                throw new Error('No evaluation payload found after validation.');
+            }
+            $('#eval-config-preview').textContent = JSON.stringify(data.config.eval, null, 2);
+            showMessage('Evaluation configuration validated. Ready for downstream tasks.', 'success');
+        })
+        .catch((error) => {
+            showMessage(error.message, 'error');
+        });
 }
 
 function startPretextTraining() {
@@ -543,6 +598,7 @@ function clearDataset() {
     $('#dataset-code').value = '';
     $('#dataset-class').innerHTML = '<option value="" disabled selected>Select a class</option>';
     $('#dataset-summary').innerHTML = '';
+    $('#dataset-test-path').value = '';
     state.datasetSummary = {};
 }
 
@@ -553,7 +609,8 @@ function bindEvents() {
     $('#instantiate-dataset').addEventListener('click', instantiateDatasets);
     $('#export-config').addEventListener('click', exportConfig);
     $('#import-config').addEventListener('change', importConfig);
-    $('#generate-run-sheet').addEventListener('click', generateRunSheet);
+    $('#generate-train-sheet').addEventListener('click', generateTrainingPreview);
+    $('#generate-eval-sheet').addEventListener('click', generateEvaluationPreview);
     $('#start-pretext-training').addEventListener('click', startPretextTraining);
     $('#use_generic').addEventListener('change', updateGenericVisibility);
     $('#include-eval').addEventListener('change', updateEvaluationVisibility);
